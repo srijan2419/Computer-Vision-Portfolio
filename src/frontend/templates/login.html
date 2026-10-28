@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Tire Production Monitor{% endblock %}
+
+{% block extra_css %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+        position: relative;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    .login-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 30%, rgba(148, 163, 184, 0.08), transparent 60%),
+            radial-gradient(circle at 80% 70%, rgba(100, 116, 139, 0.06), transparent 60%);
+        pointer-events: none;
+    }
+    
+    .login-card {
+        background: #ffffff;
+        padding: 3.5rem 3rem;
+        border-radius: 16px;
+        box-shadow: 
+            0 1px 3px rgba(15, 23, 42, 0.03),
+            0 4px 12px rgba(15, 23, 42, 0.08),
+            0 16px 48px rgba(15, 23, 42, 0.12);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        width: 100%;
+        max-width: 440px;
+        position: relative;
+        animation: slideUp 0.4s ease;
+    }
+    
+    .login-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #1e293b, #475569, #64748b);
+        border-radius: 16px 16px 0 0;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .brand-logo {
+        text-align: center;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    
+    .logo-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border-radius: 20px;
+        box-shadow: 
+            0 4px 12px rgba(15, 23, 42, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        margin: 0 auto 1rem;
+        position: relative;
+    }
+    
+    .logo-badge::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+        border-radius: 21px;
+        z-index: -1;
+        opacity: 0.5;
+    }
+    
+    .logo-icon {
+        font-size: 2.5rem;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+    
+    .login-title {
+        text-align: center;
+        font-size: 1.875rem;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.035em;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .login-subtitle {
+        text-align: center;
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-bottom: 2.5rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.6rem;
+        color: #334155;
+        font-weight: 600;
+        font-size: 0.875rem;
+        letter-spacing: 0.015em;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        color: #94a3b8;
+        font-size: 1.1rem;
+        pointer-events: none;
+        transition: color 0.2s;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 0.875rem 1rem 0.875rem 2.75rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.9375rem;
+        transition: all 0.2s;
+        background: #ffffff;
+        color: #0f172a;
+        font-weight: 500;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.005em;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: #475569;
+        background: #fafafa;
+        box-shadow: 
+            0 0 0 3px rgba(71, 85, 105, 0.08),
+            0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-group input:focus + .input-icon {
+        color: #475569;
+    }
+    
+    .error-message {
+        background: #fef2f2;
+        color: #991b1b;
+        padding: 0.875rem 1rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        border: 1px solid #fecaca;
+        font-weight: 500;
+        font-size: 0.875rem;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.01em;
+    }
+    
+    .login-btn {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 
+            0 1px 2px rgba(0, 0, 0, 0.05),
+            0 4px 12px rgba(15, 23, 42, 0.15);
+        position: relative;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+        font-family: 'Inter', sans-serif;
+        text-transform: uppercase;
+    }
+    
+    .login-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 
+            0 4px 12px rgba(15, 23, 42, 0.2),
+            0 8px 24px rgba(15, 23, 42, 0.15);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    }
+    
+    .login-btn:active {
+        transform: translateY(0);
+        box-shadow: 
+            0 1px 2px rgba(0, 0, 0, 0.05),
+            0 2px 8px rgba(15, 23, 42, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block login_content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="brand-logo">
+            <div class="logo-badge">
+                <span class="logo-icon">⚙️</span>
+            </div>
+        </div>
+        <h1 class="login-title">Tire Production Monitor</h1>
+        <p class="login-subtitle">Enterprise Production Management System</p>
+        
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <div class="input-wrapper">
+                    <input type="text" id="username" name="username" required autofocus>
+                    <span class="input-icon">👤</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="password" name="password" required>
+                    <span class="input-icon">🔒</span>
+                </div>
+            </div>
+            
+            <button type="submit" class="login-btn">Sign In</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Production Log - Tire Production Monitor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .date-filter {
+        margin-bottom: 2rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .date-filter label {
+        font-weight: 600;
+        color: var(--primary-light);
+        letter-spacing: 0.03em;
+    }
+    
+    .date-filter input {
+        padding: 0.65rem 1rem;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-family: 'Inter', sans-serif;
+        color: var(--primary-dark);
+        background: var(--surface);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .date-filter input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.12);
+    }
+    
+    .filter-btn {
+        padding: 0.65rem 1.6rem;
+    }
+    
+    .total-count {
+        color: var(--muted);
+        font-weight: 500;
+        letter-spacing: 0.02em;
+    }
+    
+    .tire-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--surface);
+        border-radius: 16px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .tire-table thead {
+        background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        color: #ffffff;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    
+    .tire-table th,
+    .tire-table td {
+        padding: 1rem 1.25rem;
+        text-align: left;
+    }
+    
+    .tire-table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .tire-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+    
+    .tire-table tbody tr:hover {
+        background: rgba(226, 232, 240, 0.35);
+    }
+    
+    .tire-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    
+    .status-badge {
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+    
+    .status-completed {
+        background: rgba(34, 197, 94, 0.12);
+        color: #047857;
+    }
+    
+    .status-in-progress {
+        background: rgba(217, 119, 6, 0.12);
+        color: #b45309;
+    }
+    
+    .view-btn {
+        padding: 0.55rem 1.25rem;
+        background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        color: #ffffff;
+        border-radius: 10px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .view-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--muted);
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Production Log</h2>
+    
+    <div class="date-filter">
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="date-select">Date:</label>
+            <input type="date" id="date-select" value="{{ selected_date }}">
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+             <label>Time Range:</label>
+             <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="time" id="start-time" value="{{ selected_start_time }}">
+                <span>to</span>
+                <input type="time" id="end-time" value="{{ selected_end_time }}">
+             </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label for="shift-select">Shift:</label>
+            <select id="shift-select" style="padding: 0.65rem 1rem; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.95rem; background: var(--surface); color: var(--primary-dark);">
+                <option value="">All Shifts</option>
+                {% for shift in shifts %}
+                <option value="{{ shift.id }}" {% if selected_shift == shift.id %}selected{% endif %}>{{ shift.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="btn btn-primary filter-btn" onclick="applyFilters()" style="margin-top: auto;">Apply Filter</button>
+        <span class="total-count" style="margin-top: auto; margin-left: auto;">Total: {{ tires|length }} tire(s)</span>
+    </div>
+    
+    {% if tires %}
+    <table class="tire-table">
+        <thead>
+            <tr>
+                <th>Tire #</th>
+                <th>Shift</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tire in tires %}
+            <tr>
+                <td><strong>#{{ tire.daily_number }}</strong></td>
+                <td>
+                    {% if tire.shift %}
+                        {% if tire.shift.is_deleted %}
+                            <span style="font-weight: 600; color: var(--muted); text-decoration: line-through;" title="This shift has been deleted">{{ tire.shift.name }}</span>
+                        {% else %}
+                            <span style="font-weight: 600; color: var(--primary);">{{ tire.shift.name }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span style="color: var(--muted);">No Shift</span>
+                    {% endif %}
+                </td>
+                <td>{{ tire.start_time|time_12h }}</td>
+                <td>
+                    {% if tire.end_time %}
+                        {{ tire.end_time|time_12h }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if tire.duration_seconds %}
+                        {{ tire.duration_seconds|duration_hhmm }}
+                    {% else %}
+                        In progress
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="status-badge {% if tire.status == 'completed' %}status-completed{% else %}status-in-progress{% endif %}">
+                        {{ tire.status.upper().replace('_', ' ') }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{{ url_for('tire_detail', tire_id=tire.id) }}" class="view-btn">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">
+        No tires produced on {{ selected_date }}
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function applyFilters() {
+        const date = document.getElementById('date-select').value;
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
+        const shiftId = document.getElementById('shift-select').value;
+        
+        let url = `/production?date=${date}`;
+        if (startTime) url += `&start_time=${startTime}`;
+        if (endTime) url += `&end_time=${endTime}`;
+        if (shiftId) url += `&shift_id=${shiftId}`;
+        
+        window.location.href = url;
+    }
+</script>
+{% endblock %}
+
+

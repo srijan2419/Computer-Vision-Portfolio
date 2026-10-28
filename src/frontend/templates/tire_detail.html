@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Tire #{{ tire.daily_number }} ({{ tire.created_at.strftime('%Y-%m-%d') }}) - Tire Production Monitor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.75rem;
+        margin-bottom: 2rem;
+    }
+    
+    .detail-item {
+        padding: 1.25rem 1.5rem;
+        background: var(--surface);
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+    }
+    
+    .detail-label {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.04em;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .detail-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        letter-spacing: -0.01em;
+    }
+    
+    .detail-value--status {
+        font-size: 1.4rem;
+        letter-spacing: 0.04em;
+    }
+
+    .detail-value--status.completed {
+        color: var(--green-phase);
+    }
+
+    .detail-value--status.in-progress {
+        color: #b45309;
+    }
+
+    .detail-actions {
+        margin-top: 1.5rem;
+    }
+
+    .photos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+    }
+    
+    .photo-item {
+        position: relative;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .photo-item:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+    }
+    
+    .photo-item img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+    
+    .photo-timestamp {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(15, 23, 42, 0.72);
+        color: #ffffff;
+        padding: 0.5rem;
+        font-size: 0.8rem;
+        text-align: center;
+        letter-spacing: 0.05em;
+    }
+    
+    .section-subtext {
+        color: var(--muted);
+        margin-bottom: 1rem;
+        letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 768px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .photo-item img {
+            height: 200px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Tire #{{ tire.daily_number }} - {{ tire.created_at.strftime('%B %d, %Y') }}</h2>
+    
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">Start Time</div>
+            <div class="detail-value">{{ tire.start_time|datetime_12h }}</div>
+        </div>
+        
+        <div class="detail-item">
+            <div class="detail-label">End Time</div>
+            <div class="detail-value">
+                {% if tire.end_time %}
+                    {{ tire.end_time|datetime_12h }}
+                {% else %}
+                    In Progress
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="detail-item">
+            <div class="detail-label">Total Duration</div>
+            <div class="detail-value">
+                {% if tire.duration_seconds %}
+                    {{ tire.duration_seconds|duration_hhmm }}
+                {% else %}
+                    Calculating...
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value detail-value--status {% if tire.status == 'completed' %}completed{% else %}in-progress{% endif %}">
+                {{ tire.status.upper().replace('_', ' ') }}
+            </div>
+        </div>
+        
+        <div class="detail-item">
+            <div class="detail-label">Photos Captured</div>
+            <div class="detail-value">{{ photos|length }}</div>
+        </div>
+    </div>
+    
+    <div class="detail-actions">
+        <a href="{{ url_for('production') }}" class="btn btn-primary">← Back to Production Log</a>
+    </div>
+</div>
+
+{% if photos %}
+<div class="card">
+    <h2 class="card-title">Production Photos ({{ photos|length }} snapshots)</h2>
+    <p class="section-subtext">Captured at equal intervals during production</p>
+    
+    <div class="photos-grid">
+        {% for photo in photos %}
+        <div class="photo-item">
+            <img src="{{ url_for('serve_image', filename=photo) }}" alt="Production snapshot">
+            <div class="photo-timestamp">Snapshot {{ loop.index }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+

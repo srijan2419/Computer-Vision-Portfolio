@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Tire Production Monitor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        background: var(--surface);
+        padding: 2rem;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+        margin-bottom: 2rem;
+    }
+    
+    .chart-title {
+        margin-bottom: 1.25rem;
+        color: var(--primary-dark);
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+    
+    .bar-chart {
+        display: flex;
+        align-items: flex-end;
+        height: 300px;
+        gap: 1rem;
+        padding: 1rem 0;
+    }
+    
+    .bar-item {
+        flex: 1;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .bar {
+        width: 100%;
+        height: var(--bar-height, 6%);
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.9));
+        border-radius: 12px 12px 0 0;
+        transition: all 0.3s;
+        position: relative;
+        min-height: 6px;
+    }
+    
+    .bar:hover {
+        opacity: 0.9;
+        transform: translateY(-5px);
+    }
+    
+    .bar-value {
+        position: absolute;
+        top: -32px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-weight: 600;
+        color: var(--primary-dark);
+        background: var(--surface);
+        padding: 0.3rem 0.6rem;
+        border-radius: 999px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+        font-size: 0.85rem;
+    }
+    
+    .bar-label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-align: center;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+    
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-top: 2rem;
+    }
+    
+    .summary-card {
+        background: var(--surface);
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+        text-align: center;
+    }
+    
+    .summary-value {
+        font-size: 2.1rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin: 0.5rem 0;
+        letter-spacing: -0.02em;
+    }
+    
+    .summary-value--icon {
+        font-size: 3rem;
+        line-height: 1;
+    }
+    
+    .summary-label {
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+    }
+
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+    }
+
+    .insight-heading {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        letter-spacing: 0.02em;
+        color: var(--primary-dark);
+    }
+
+    .insight-heading--accent {
+        color: var(--primary);
+    }
+
+    .insight-heading--success {
+        color: var(--success);
+    }
+
+    .insight-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .insight-list li {
+        padding: 1rem 1.25rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .insight-text {
+        color: var(--primary-light);
+        line-height: 1.8;
+    }
+</style>
+{% endblock %}
+
+{% set max_count = daily_stats|map(attribute='count')|list|max if daily_stats else 0 %}
+{% set peak_entry = daily_stats|selectattr('count', 'equalto', max_count)|list|first %}
+{% set peak_day = peak_entry.date if peak_entry else 'N/A' %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Production Analytics - Last 7 Days</h2>
+    
+    <div class="chart-container">
+        <h3 class="chart-title">Daily Production Count</h3>
+        <div class="bar-chart">
+            {% for stat in daily_stats %}
+            {% set bar_height = (stat.count / max_count * 100) if max_count > 0 else 0 %}
+            <div class="bar-item">
+                <div class="bar" style="--bar-height: {{ (bar_height if bar_height > 0 else 6) | round(2) }}%;">
+                    <div class="bar-value">{{ stat.count }}</div>
+                </div>
+                <div class="bar-label">{{ stat.date[-5:] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="chart-container" style="margin-top: 2rem;">
+        <h3 class="chart-title">Today's Production by Shift</h3>
+        {% if shift_data %}
+        <div class="bar-chart" style="height: 200px;">
+            {% set max_shift_count = shift_data|map(attribute='count')|list|max if shift_data else 0 %}
+            {% for shift in shift_data %}
+            {% set bar_height = (shift.count / max_shift_count * 100) if max_shift_count > 0 else 0 %}
+            <div class="bar-item">
+                <div class="bar" style="--bar-height: {{ (bar_height if bar_height > 0 else 6) | round(2) }}%;">
+                    <div class="bar-value">{{ shift.count }}</div>
+                </div>
+                <div class="bar-label">{{ shift.name }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="text-align: center; color: var(--muted); padding: 2rem;">No shift data for today</p>
+        {% endif %}
+    </div>
+    
+    <div class="stats-summary">
+        <div class="summary-card">
+            <div class="summary-label">Total This Week</div>
+            <div class="summary-value">{{ daily_stats|map(attribute='count')|sum }}</div>
+            <div class="summary-label">Tires Produced</div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-label">Daily Average</div>
+            <div class="summary-value">{{ "%.1f"|format(daily_stats|map(attribute='count')|sum / 7) }}</div>
+            <div class="summary-label">Tires per Day</div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-label">Best Day</div>
+            <div class="summary-value">{{ max_count }}</div>
+            <div class="summary-label">Maximum Production</div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-label">Trend</div>
+            <div class="summary-value summary-value--icon">
+                {% if daily_stats[-1].count > daily_stats[0].count %}📈{% else %}📉{% endif %}
+            </div>
+            <div class="summary-label">
+                {% if daily_stats[-1].count > daily_stats[0].count %}Increasing{% else %}Decreasing{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Performance Insights</h2>
+    
+    <div class="insights-grid">
+        <div>
+            <h3 class="insight-heading insight-heading--accent">💡 Key Metrics</h3>
+            <ul class="insight-list">
+                <li>
+                    <strong>Week Total:</strong> {{ daily_stats|map(attribute='count')|sum }} tires
+                </li>
+                <li>
+                    <strong>Peak Day:</strong> {{ peak_day[-5:] if peak_day != 'N/A' else 'N/A' }}
+                </li>
+                <li>
+                    <strong>Efficiency:</strong> 
+                    {% if daily_stats|map(attribute='count')|sum > 0 %}High{% else %}Monitor{% endif %}
+                </li>
+            </ul>
+        </div>
+        
+        <div>
+            <h3 class="insight-heading insight-heading--success">📊 Summary</h3>
+            <p class="insight-text">
+                The production system has processed <strong>{{ daily_stats|map(attribute='count')|sum }}</strong> tires 
+                over the last 7 days, with an average of <strong>{{ "%.1f"|format(daily_stats|map(attribute='count')|sum / 7) }}</strong> 
+                tires per day. 
+                {% if daily_stats[-1].count > daily_stats[0].count %}
+                Production is showing an upward trend.
+                {% else %}
+                Consider investigating any production bottlenecks.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

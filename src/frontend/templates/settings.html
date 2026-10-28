@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Tire Production Monitor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-section {
+        margin-bottom: 2.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--primary-light);
+        letter-spacing: 0.02em;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-family: 'Inter', sans-serif;
+        background: var(--surface);
+        color: var(--primary-dark);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.12);
+    }
+
+    .settings-heading {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 1rem;
+        letter-spacing: 0.02em;
+    }
+
+    .settings-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+
+    .settings-divider {
+        margin: 2.5rem 0;
+        border: none;
+        border-top: 1px solid var(--border);
+    }
+
+    .system-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .system-info-card {
+        padding: 1.25rem;
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .system-info-label {
+        color: var(--muted);
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .system-info-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .users-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 1rem;
+        background: var(--surface);
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+    }
+    
+    .users-table th,
+    .users-table td {
+        padding: 1rem 1.25rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .users-table th {
+        background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        font-weight: 600;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.85rem;
+    }
+
+    .users-table tbody tr:hover {
+        background: rgba(226, 232, 240, 0.35);
+    }
+    
+    .role-badge {
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+    
+    .role-admin {
+        background: rgba(30, 41, 59, 0.12);
+        color: var(--primary);
+    }
+    
+    .role-user {
+        background: rgba(34, 197, 94, 0.12);
+        color: #047857;
+    }
+
+    .status-active-text {
+        color: var(--green-phase);
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    .note-box {
+        margin-top: 1.75rem;
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .note-text {
+        color: var(--muted);
+        margin: 0;
+        line-height: 1.7;
+    }
+
+    @media (max-width: 768px) {
+        .settings-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">System Settings</h2>
+    
+    <div class="settings-section">
+        <h3 class="settings-heading">Production Filtering</h3>
+        
+        <div class="form-group">
+            <label for="min-duration">Minimum Time to be Counted</label>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="number" id="min-duration" min="1" max="99" 
+                       value="{{ system_settings.minimum_duration_minutes if system_settings else 5 }}" 
+                       placeholder="05"
+                       style="width: 100px; text-align: center; font-size: 1.1rem; font-weight: 600;">
+                <span style="color: var(--muted); font-weight: 600; font-size: 0.95rem;">minutes</span>
+            </div>
+            <p style="color: var(--muted); font-size: 0.875rem; margin-top: 0.75rem; line-height: 1.6;">
+                Production cycles shorter than this duration will be automatically filtered out and not counted.
+            </p>
+        </div>
+        
+        <div class="settings-actions">
+            <button onclick="updateMinimumDuration()" class="btn btn-primary">💾 Save Minimum Duration</button>
+        </div>
+    </div>
+    
+    <hr class="settings-divider">
+    
+    <div class="settings-section">
+        <h3 class="settings-heading">Shift Management</h3>
+        
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <div style="flex: 2; min-width: 200px;">
+                <input type="text" id="shift-name" placeholder="Shift Name (e.g. Morning)" style="width: 100%; padding: 0.8rem 1rem; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem;">
+            </div>
+            <div style="flex: 1; min-width: 130px;">
+                <input type="time" id="shift-start" style="width: 100%; padding: 0.8rem 1rem; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem;">
+            </div>
+            <div style="flex: 1; min-width: 130px;">
+                <input type="time" id="shift-end" style="width: 100%; padding: 0.8rem 1rem; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.95rem;">
+            </div>
+            <button onclick="addShift()" class="btn btn-primary" style="white-space: nowrap;">+ Add Shift</button>
+        </div>
+        
+        <div id="shifts-list" class="users-table-container">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Shift Name</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="shifts-tbody">
+                    <!-- Shifts loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <hr class="settings-divider">
+    
+    <div class="settings-section">
+        <h3 class="settings-heading">System Information</h3>
+        
+        <div class="system-info-grid">
+            <div class="system-info-card">
+                <div class="system-info-label">Stream Status</div>
+                <div class="system-info-value">
+                    <span class="status-indicator {% if system_status and system_status.stream_active %}status-active{% else %}status-inactive{% endif %}"></span>
+                    {% if system_status and system_status.stream_active %}Active{% else %}Inactive{% endif %}
+                </div>
+            </div>
+            
+            <div class="system-info-card">
+                <div class="system-info-label">Last Update</div>
+                <div class="system-info-value">
+                    {% if system_status and system_status.last_update %}
+                        {{ system_status.last_update|time_12h }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="system-info-card">
+                <div class="system-info-label">Current Detection</div>
+                <div class="system-info-value">
+                    {% if system_status and system_status.current_detection %}
+                        {{ system_status.current_detection.upper().replace('_', ' ') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-title">User Management</h2>
+    
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Created At</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td><strong>{{ user.username }}</strong></td>
+                <td>
+                    <span class="role-badge {% if user.role == 'admin' %}role-admin{% else %}role-user{% endif %}">
+                        {{ user.role.upper() }}
+                    </span>
+                </td>
+                <td>{{ user.created_at|datetime_12h }}</td>
+                <td>
+                    <span class="status-active-text">● Active</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="note-box">
+        <p class="note-text">
+            <strong>Note:</strong> User management features will be available in future updates.
+            Contact system administrator to add new users.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load shifts on page load
+    document.addEventListener('DOMContentLoaded', loadShifts);
+
+    async function loadShifts() {
+        try {
+            const response = await fetch('/api/shifts');
+            const shifts = await response.json();
+            
+            const tbody = document.getElementById('shifts-tbody');
+            tbody.innerHTML = '';
+            
+            if (shifts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--muted);">No shifts defined</td></tr>';
+                return;
+            }
+            
+            shifts.forEach(shift => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${shift.name}</strong></td>
+                    <td>${shift.start_time}</td>
+                    <td>${shift.end_time}</td>
+                    <td>
+                        <button onclick="deleteShift(${shift.id})" class="btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background: #ef4444; color: white; border: none;">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('Error loading shifts:', error);
+        }
+    }
+
+    async function addShift() {
+        const name = document.getElementById('shift-name').value;
+        const startTime = document.getElementById('shift-start').value;
+        const endTime = document.getElementById('shift-end').value;
+        
+        if (!name || !startTime || !endTime) {
+            alert('Please fill all fields');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/shifts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, start_time: startTime, end_time: endTime })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('shift-name').value = '';
+                document.getElementById('shift-start').value = '';
+                document.getElementById('shift-end').value = '';
+                loadShifts();
+            } else {
+                alert('Error adding shift: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function deleteShift(id) {
+        if (!confirm('Are you sure you want to delete this shift?')) return;
+        
+        try {
+            const response = await fetch(`/api/shifts/${id}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                loadShifts();
+            } else {
+                alert('Error deleting shift: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function updateMinimumDuration() {
+        const duration = parseInt(document.getElementById('min-duration').value);
+        
+        if (!duration || duration < 1 || duration > 99) {
+            alert('Please enter a valid duration (1-99 minutes)');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/update_minimum_duration', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ minimum_duration_minutes: duration })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert(`Minimum duration updated to ${data.minimum_duration_minutes} minutes!\n\nProduction cycles shorter than this will be filtered out.`);
+            } else {
+                alert('Error updating minimum duration: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Tire Production Monitor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .stats-grid--compact {
+        margin-bottom: 0;
+    }
+
+    .live-feed-card {
+        margin-bottom: 0;
+    }
+
+    .section-heading {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        letter-spacing: 0.025em;
+    }
+
+    .live-feed-frame {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
+        border-radius: 16px;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(15, 23, 42, 0.35);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.22);
+    }
+
+    .live-feed-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: none;
+        background: #0f172a;
+    }
+
+    .live-feed-placeholder {
+        color: rgba(226, 232, 240, 0.85);
+        text-align: center;
+        padding: 2rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+    }
+
+    .live-feed-placeholder__icon {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .production-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.75rem;
+    }
+
+    .production-label {
+        font-size: 0.85rem;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+    }
+
+    .production-value {
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: var(--primary-dark);
+        letter-spacing: -0.01em;
+    }
+
+    .production-value--highlight {
+        color: var(--primary);
+        font-size: 1.9rem;
+        font-weight: 700;
+    }
+
+    .production-status {
+        color: var(--green-phase);
+        font-weight: 700;
+        font-size: 1.4rem;
+        letter-spacing: 0.04em;
+    }
+
+    .production-cta {
+        margin-top: 2rem;
+    }
+
+    .production-empty {
+        text-align: center;
+        padding: 3rem;
+        color: var(--muted);
+        font-size: 1.1rem;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    #phase-card {
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    #phase-card .stat-value {
+        font-size: 2rem;
+    }
+
+    #phase-card[data-phase="empty_drum"] {
+        border-color: rgba(239, 68, 68, 0.25);
+        box-shadow: 0 12px 32px rgba(239, 68, 68, 0.15);
+    }
+
+    #phase-card[data-phase="empty_drum"] .stat-value {
+        color: #b91c1c;
+    }
+
+    #phase-card[data-phase="yellow_tire"] {
+        border-color: rgba(245, 158, 11, 0.25);
+        box-shadow: 0 12px 32px rgba(245, 158, 11, 0.18);
+    }
+
+    #phase-card[data-phase="yellow_tire"] .stat-value {
+        color: #b45309;
+    }
+
+    #phase-card[data-phase="in_process"] {
+        border-color: rgba(16, 185, 129, 0.25);
+        box-shadow: 0 12px 32px rgba(16, 185, 129, 0.18);
+    }
+
+    #phase-card[data-phase="in_process"] .stat-value {
+        color: #047857;
+    }
+
+    #phase-card[data-phase="idle"],
+    #phase-card[data-phase="unknown"],
+    #phase-card:not([data-phase]) {
+        border-color: var(--border);
+    }
+
+    @media (max-width: 1200px) {
+        .dashboard-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .quick-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <div class="stats-grid stats-grid--compact">
+        <div class="stat-card">
+            <div class="stat-label">Tires Produced Today</div>
+            <div class="stat-value" id="today-count">{{ total_today }}</div>
+            <div class="stat-label">Total Count</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">Average Production Time</div>
+            <div class="stat-value">{{ avg_duration|duration_hhmm }}</div>
+            <div class="stat-label">Per Tire</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Current Shift</div>
+            <div class="stat-value" style="font-size: 1.6rem;">
+                {% if current_shift %}
+                    {{ current_shift.name }}
+                {% else %}
+                    <span style="color: var(--muted); font-size: 1.4rem;">No Shift</span>
+                {% endif %}
+            </div>
+            <div class="stat-label">
+                {% if current_shift %}
+                    {{ current_shift.start_time.strftime('%I:%M %p') }} - {{ current_shift.end_time.strftime('%I:%M %p') }}
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-label">System Status</div>
+            <div class="stat-value" style="font-size: 2rem;">
+                <span class="status-indicator {% if system_status.stream_active %}status-active{% else %}status-inactive{% endif %}"></span>
+                {% if system_status.stream_active %}ACTIVE{% else %}STOPPED{% endif %}
+            </div>
+            <div class="stat-label">Stream Processing</div>
+        </div>
+        
+        <div class="stat-card" id="phase-card" data-phase="{{ system_status.current_detection or 'idle' }}">
+            <div class="stat-label">Current Phase</div>
+            <div class="stat-value" id="current-phase">
+                {% if system_status.current_detection == 'empty_drum' %}
+                    Empty Drum
+                {% elif system_status.current_detection == 'yellow_tire' %}
+                    Yellow Cover
+                {% elif system_status.current_detection == 'in_process' %}
+                    In Process
+                {% else %}
+                    Idle
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="card live-feed-card">
+        <h3 class="section-heading">📹 Live Feed</h3>
+        <div class="live-feed-frame">
+            <img id="live-frame" class="live-feed-image" src="" alt="Live Feed">
+            <div id="no-feed" class="live-feed-placeholder">
+                <div class="live-feed-placeholder__icon">📷</div>
+                <div>Waiting for stream...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Current Production</h2>
+    {% if current_tire %}
+    <div class="production-grid">
+        <div>
+            <p class="production-label">Tire Number</p>
+            <p class="production-value production-value--highlight">#{{ current_tire.daily_number }}</p>
+        </div>
+        <div>
+            <p class="production-label">Started At</p>
+            <p class="production-value">{{ current_tire.start_time|time_12h }}</p>
+        </div>
+        <div>
+            <p class="production-label">Duration</p>
+            <p class="production-value" id="current-duration">Calculating...</p>
+        </div>
+        <div>
+            <p class="production-label">Status</p>
+            <p class="production-status">IN PROGRESS</p>
+        </div>
+    </div>
+    <div class="production-cta">
+        <a href="{{ url_for('tire_detail', tire_id=current_tire.id) }}" class="btn btn-primary">View Details</a>
+    </div>
+    {% else %}
+    <p class="production-empty">
+        No tire currently in production
+    </p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2 class="card-title">Quick Actions</h2>
+    <div class="quick-actions">
+        <a href="{{ url_for('production') }}" class="btn btn-primary">📊 View Production Log</a>
+        <a href="{{ url_for('analytics') }}" class="btn btn-primary">📈 View Analytics</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function startStream() {
+        try {
+            const response = await fetch('/api/start_stream', { method: 'POST' });
+            const data = await response.json();
+            if (data.success) {
+                alert('Stream monitoring started!');
+                location.reload();
+            }
+        } catch (error) {
+            alert('Error starting stream: ' + error.message);
+        }
+    }
+    
+    async function stopStream() {
+        try {
+            const response = await fetch('/api/stop_stream', { method: 'POST' });
+            const data = await response.json();
+            if (data.success) {
+                alert('Stream monitoring stopped!');
+                location.reload();
+            }
+        } catch (error) {
+            alert('Error stopping stream: ' + error.message);
+        }
+    }
+    
+    // Update phase colors dynamically
+    function updatePhaseCard(phase) {
+        const card = document.getElementById('phase-card');
+        const phaseText = document.getElementById('current-phase');
+        
+        card.dataset.phase = phase || 'idle';
+
+        if (phase === 'empty_drum') {
+            phaseText.textContent = 'Empty Drum';
+        } else if (phase === 'yellow_tire') {
+            phaseText.textContent = 'Yellow Cover';
+        } else if (phase === 'in_process') {
+            phaseText.textContent = 'In Process';
+        } else {
+            phaseText.textContent = 'Idle';
+        }
+    }
+    
+    // Update live feed image
+    function updateLiveFeed(framePath) {
+        const liveFrame = document.getElementById('live-frame');
+        const noFeed = document.getElementById('no-feed');
+        
+        if (framePath) {
+            // Preload new image before swapping to avoid broken image flash
+            const newImg = new Image();
+            const newSrc = '/images/' + framePath + '?t=' + new Date().getTime();
+            newImg.onload = function() {
+                liveFrame.src = newSrc;
+                liveFrame.style.display = 'block';
+                noFeed.style.display = 'none';
+            };
+            newImg.src = newSrc;
+        } else {
+            liveFrame.style.display = 'none';
+            noFeed.style.display = 'block';
+        }
+    }
+    
+    // Function to update status
+    async function updateStatus() {
+        try {
+            const response = await fetch('/api/status');
+            const data = await response.json();
+            
+            // Update phase card
+            if (data.current_detection) {
+                updatePhaseCard(data.current_detection);
+            }
+            
+            // Update live feed
+            if (data.latest_frame) {
+                updateLiveFeed(data.latest_frame);
+            }
+            
+            // Update today count
+            const todayCount = document.getElementById('today-count');
+            if (todayCount) {
+                todayCount.textContent = data.today_count;
+            }
+        } catch (error) {
+            console.error('Error fetching status:', error);
+        }
+    }
+    
+    // Set initial phase card background
+    const initialPhase = '{{ system_status.current_detection }}';
+    if (initialPhase) {
+        updatePhaseCard(initialPhase);
+    }
+    
+    // Update immediately on page load
+    updateStatus();
+    
+    // Poll for updates every 2 seconds
+    setInterval(updateStatus, 2000);
+    
+    // Update current tire duration in real-time
+    var currentTireStartTime = '{{ current_tire.start_time.isoformat() if current_tire else "" }}';
+    if (currentTireStartTime) {
+        (function() {
+            var startTime = new Date(currentTireStartTime);
+            setInterval(function() {
+                var now = new Date();
+                var diff = Math.floor((now - startTime) / 1000);
+                var hours = Math.floor(diff / 3600);
+                var minutes = Math.floor((diff % 3600) / 60);
+                var seconds = diff % 60;
+                var durationEl = document.getElementById('current-duration');
+                if (durationEl) {
+                    if (hours > 0) {
+                        durationEl.textContent = hours + 'h ' + minutes + 'm ' + seconds + 's';
+                    } else {
+                        durationEl.textContent = minutes + 'm ' + seconds + 's';
+                    }
+                }
+            }, 1000);
+        })();
+    }
+</script>
+{% endblock %}
+
+
